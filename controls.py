@@ -63,7 +63,7 @@ class Controller:
         for camera_control in self.cameras:
             has_started = camera_control.start_camera()
             if has_started:
-                camera_control.initialize()
+                camera_control.initialize_preview()
 
     def populate_presets_menu(self):
         self.presetsmenu.delete(0, tkinter.END)
@@ -75,12 +75,10 @@ class Controller:
     def open_preset_window(self, camera):
         ManagePresets(self.root, camera, self.close_preset_window)
 
-    def close_preset_window(self, camera_name, hidden_presets):
-        self.config.set(camera_name, 'hidden_presets', ','.join(hidden_presets))
-        self.config.write(open(self.settings_filename, 'w'))
+    def close_preset_window(self):
         self.reload()
 
-    def default_settings(self):
+    def default_settings(self): #@todo replace this
         parser = configparser.ConfigParser()
         config_file = open(self.settings_filename, 'w')
         config_file.write('# Restart the program after changing settings\n')
@@ -119,10 +117,10 @@ class Controller:
 
     def get_general_settings(self):
         try:
-            self.move_speed_slow = self.config['GENERAL']['mode_speed_slow']
-            self.move_speed_fast = self.config['GENERAL']['mode_speed_fast']
-            self.zoom_speed_slow = self.config['GENERAL']['zoom_speed_slow']
-            self.zoom_speed_fast = self.config['GENERAL']['zoom_speed_fast']
+            self.move_speed_slow = int(self.config['GENERAL']['mode_speed_slow'])
+            self.move_speed_fast = int(self.config['GENERAL']['mode_speed_fast'])
+            self.zoom_speed_slow = int(self.config['GENERAL']['zoom_speed_slow'])
+            self.zoom_speed_fast = int(self.config['GENERAL']['zoom_speed_fast'])
         except Exception:
             self.set_message("Failed to load speed from the configuration file")
 

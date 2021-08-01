@@ -71,11 +71,9 @@ class ONVIFControl:
         self.imaging.SetImagingSettings(request)
 
     def preset_list(self):
-        # return [{"id": 1, "name":"My preset1"}, {"id": 2, "name":"My other preset1"},
-        #         {"id": 3, "name":"My preset2"}, {"id": 4, "name":"My other preset2"},
-        #         {"id": 5, "name":"My preset3"}, {"id": 6, "name":"My other preset3"}]
         request = {'ProfileToken': self.profile_token}
         return self.ptz.GetPresets(request)
+
 
     def preset_goto(self, preset_id):
         request = {'ProfileToken': self.profile_token,
@@ -83,11 +81,13 @@ class ONVIFControl:
                    }
         self.ptz.GotoPreset(request)
 
+
     def preset_add(self, name):
         request = {'ProfileToken': self.profile_token,
                    'PresetName': name,
                    }
         self.ptz.SetPreset(request)
+
 
     def preset_remove(self, preset_id):
         request = {'ProfileToken': self.profile_token,

@@ -2,6 +2,7 @@ import os
 from lib.pyinstaller_helper import resource_path
 from tkinter import Button, PhotoImage, Label, Toplevel, Entry, Frame
 from onvif.exceptions import ONVIFError
+from math import floor
 
 
 class ManagePresets(Toplevel):
@@ -24,7 +25,6 @@ class ManagePresets(Toplevel):
         self.preset_hide_buttons = []
         self.state = []
         self.preset_delete_image = PhotoImage(file=resource_path(os.path.join('assets', 'trash.png')))
-        self.preset_hidden_image = PhotoImage(file=resource_path(os.path.join('assets', 'hidden.png')))
         self.preset_visible_image = PhotoImage(file=resource_path(os.path.join('assets', 'visible.png')))
 
         self.add_frame = Frame(self, background='white')
@@ -51,7 +51,7 @@ class ManagePresets(Toplevel):
 
     def reload(self):
         try:
-            if not self.camera.enabled:
+            if self.camera.enabled is False:
                 raise Exception("Camera not started")
 
             presets = self.camera.camera.preset_list()
@@ -65,37 +65,22 @@ class ManagePresets(Toplevel):
             self.preset_frame = Frame(self, background='white')
             self.preset_frame.grid(row=1, column=0, padx=0.1, pady=0.1)
             start_row_offset = 2
+            presets_per_column = 1
             for idx, preset in enumerate(presets):
-                row = idx + start_row_offset
+                row = floor(idx / presets_per_column)
+                column = 2*(idx % presets_per_column) + start_row_offset
                 preset_delete_button = Button(self.preset_frame, image=self.preset_delete_image, height=20, width=20,
                                               background='white', border=0, command=lambda idx=idx: self.delete(idx))
-                preset_delete_button.grid(row=row, column=0, padx=0, pady=0)
+                preset_delete_button.grid(row=row, column=column, padx=0, pady=0)
 
-                preset_hide_button = Button(self.preset_frame, image=self.preset_visible_image, height=20, width=20,
-                                            background='white', border=0,
-                                            command=lambda idx=idx: self.toggle_visibility(idx))
-                if preset['name'] in self.camera.hidden_presets:
-                    preset_hide_button.configure(image=self.preset_hidden_image)
-                    self.state[idx] = False
-
-                preset_hide_button.grid(row=row, column=1, padx=0, pady=0)
-
-                preset_label = Label(self.preset_frame, text=preset['name'], background="white", anchor="w", width=15)
-                preset_label.grid(row=row, column=2, padx=0, pady=0, sticky="w")
+                preset_label = Label(self.preset_frame, text=preset['Name'], background="white", anchor="w", width=15)
+                preset_label.grid(row=row, column=column + 1, padx=0, pady=0, sticky="w")
 
                 self.preset_labels.append(preset_label)
                 self.preset_delete_buttons.append(preset_delete_button)
-                self.preset_hide_buttons.append(preset_hide_button)
+
         except Exception:
             self.set_message('Camera not started')
-
-    def toggle_visibility(self, idx):
-        if self.state[idx] is True:
-            self.preset_hide_buttons[idx].configure(image=self.preset_hidden_image)
-        else:
-            self.preset_hide_buttons[idx].configure(image=self.preset_visible_image)
-
-        self.state[idx] = True if self.state[idx] is False else False
 
     def add(self):
         try:
@@ -117,9 +102,5 @@ class ManagePresets(Toplevel):
         self.update()
 
     def close(self):
-        hidden = []
-        for idx, val in enumerate(self.state):
-            if val is False:
-                hidden.append(self.preset_labels[idx].cget('text'))
-        self.close_cb(self.camera.name, hidden)
+        self.close_cb()
         self.destroy()

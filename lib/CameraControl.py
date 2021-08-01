@@ -4,8 +4,8 @@ from math import floor
 from PIL import Image, ImageTk
 import cv2
 from lib.ONVIFControl import ONVIFControl
-from lib.pyinstaller_helper import resource_path, user_path
-from tkinter import Button, PhotoImage, Label, LabelFrame, Menu, Tk
+from lib.pyinstaller_helper import resource_path
+from tkinter import Button, PhotoImage, Label, LabelFrame
 from onvif.exceptions import ONVIFError
 
 
@@ -19,7 +19,7 @@ class CameraControl:
         self.username = '' if 'username' not in config else config['username']
         self.password = '' if 'password' not in config else config['password']
         self.preview_url = '' if 'preview' not in config else config['preview']
-        self.hidden_presets = [] if 'hidden_presets' not in config else config['hidden_presets'].split(',')
+        self.hidden_preset_prefix = '' if 'hidden_preset_prefix' not in config else config['hidden_preset_prefix']
         self.zoom_speed = 40 if 'zoom_speed_slow' not in general else general['zoom_speed_slow']
         self.zoom_speed_fast = 80 if 'zoom_speed_fast' in general else general['zoom_speed_fast']
         self.move_speed = 30 if 'move_speed_slow' in general else general['move_speed_slow']
@@ -148,11 +148,11 @@ class CameraControl:
         self.preset_buttons = []
         i = 0
         for preset in presets:
-            if preset['name'] not in self.hidden_presets:
+            if not preset['Name'].startswith(self.hidden_preset_prefix):
                 column = floor(i / presets_per_column)
                 row = i % presets_per_column
-                preset_button = Button(self.frame, width=30, text=preset['name'],
-                                       command=lambda id=preset['id']: self.preset_click(id))
+                preset_button = Button(self.frame, width=30, text=preset['Name'],
+                                       command=lambda id=i: self.preset_click(id))
                 preset_button.grid(row=row, column=start_column + column, padx=5, pady=5)
                 self.preset_buttons.append(preset_button)
                 i += 1
