@@ -1,9 +1,10 @@
 name: Build
+on: [push, workflow_dispatch]
 
-on:
-  create:
-    tags:
-      - v*
+#on:
+#  create:
+#    tags:
+#      - v*
 
 jobs:
   build:
