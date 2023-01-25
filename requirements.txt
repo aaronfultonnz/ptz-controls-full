@@ -1,4 +1,4 @@
 onvif-zeep
-pyinstaller
 opencv-python
 pillow
+appdirs

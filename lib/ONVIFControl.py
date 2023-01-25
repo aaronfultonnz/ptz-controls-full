@@ -74,26 +74,18 @@ class ONVIFControl:
         request = {'ProfileToken': self.profile_token}
         return self.ptz.GetPresets(request)
 
-
     def preset_goto(self, preset_id):
         request = {'ProfileToken': self.profile_token,
                    'PresetToken': preset_id,
                    }
         self.ptz.GotoPreset(request)
 
-
-    def preset_add(self, name):
+    def preset_add(self, name, preset_token):
         request = {'ProfileToken': self.profile_token,
                    'PresetName': name,
+                   'PresetToken': preset_token,
                    }
         self.ptz.SetPreset(request)
-
-
-    def preset_remove(self, preset_id):
-        request = {'ProfileToken': self.profile_token,
-                   'PresetToken': preset_id,
-                   }
-        self.ptz.RemovePreset(request)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 import os, sys, subprocess
 import configparser
+import shutil
 import tkinter
 import re
 from lib.ManagePresets import ManagePresets
@@ -40,7 +41,14 @@ class Controller:
         self.reload()
         self.root.config(menu=self.menubar)
         self.root.after(500, self.initialize)  # delay the preview starting for better UX
+
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.mainloop()
+
+    def close(self):
+        for camera in self.cameras:
+            camera.close()
+        self.root.destroy()
 
     def reload(self):
         try:
@@ -78,25 +86,16 @@ class Controller:
     def close_preset_window(self):
         self.reload()
 
-    def default_settings(self): #@todo replace this
-        parser = configparser.ConfigParser()
-        config_file = open(self.settings_filename, 'w')
-        config_file.write('# Restart the program after changing settings\n')
-        parser.add_section('Camera 1')
-        parser.set('Camera 1', 'name', 'Camera 1')
-        parser.set('Camera 1', 'host', '192.168.x.x')
-        parser.set('Camera 1', 'port', '80')
-        parser.set('Camera 1', 'username', 'admin')
-        parser.set('Camera 1', 'password', '')
-        parser.write(config_file)
-        config_file.close()
+    def default_settings(self):
+        src = os.path.join(resource_path('assets'), 'default_settings.ini')
+        dst = self.settings_filename
+        shutil.copyfile(src, dst)
 
     def open_settings(self):
         if sys.platform == "win32":
             os.startfile(self.settings_filename)
         else:
-            opener = "open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.call([opener, self.settings_filename])
+            subprocess.call(["open", "-a", "TextEdit", self.settings_filename])
 
     def load_settings(self):
         if not os.path.isfile(self.settings_filename):

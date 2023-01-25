@@ -1,6 +1,6 @@
 import os
 import sys
-
+from appdirs import user_data_dir
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -20,7 +20,6 @@ def user_path(application_name, file_name):
     :param application_name: Name of the application
     :return:
     """
-    path = os.path.join(os.environ['APPDATA'], application_name)
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    path = user_data_dir('CameraController', 'WebToLife')
+    os.makedirs(path, exist_ok=True)
     return os.path.join(path, file_name)

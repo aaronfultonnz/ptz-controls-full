@@ -1,0 +1,93 @@
+name: Build
+
+on:
+  create:
+    tags:
+      - v*
+
+jobs:
+  build:
+    name: Build packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            TARGET: macos
+            CMD_BUILD: echo
+            #ARTIFACT_NAME: Camera-Controller-MacOS-vX.dmg
+            ARTIFACT_NAME: Camera-Controller-MacOS-v${{ github.ref_name }}.dmg
+            ASSET_NAME: "dist/CameraController.dmg"
+          - os: windows-latest
+            TARGET: windows
+            CMD_BUILD: pyinstaller --add-data "assets;assets" --add-data "wsdl;wsdl" --icon "assets\favicon.ico" --name "Camera Controller" --noconsole --windowed --log-level DEBUG controls.py
+            #ARTIFACT_NAME: Camera-Controller-Windows-vX.exe
+            ARTIFACT_NAME: Camera-Controller-Windows-v${{ github.ref_name }}.exe
+            ASSET_NAME: "dist/Camera Controller.exe"
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install mac dependencies
+      if: matrix.os == 'macos-latest'
+      run: STATIC_DEPS=true pip install lxml setuptools py2app dmgbuild
+
+    - name: Install python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build Pyinstaller from source
+      if: matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest'
+      run : |
+        echo Cloning official pyinstaller repo
+        git clone https://github.com/pyinstaller/pyinstaller
+        cd pyinstaller
+        git checkout v5.2
+        cd bootloader
+  
+        echo installing dependency
+        pip install wheel
+  
+        echo "Building and installing pyinstaller"
+        python ./waf all --target-arch=64bit
+        cd ..
+        python setup.py install
+        cd ..
+
+    - name: Build with pyinstaller for ${{matrix.TARGET}}
+      if: matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest'
+      run: ${{matrix.CMD_BUILD}}
+
+    - name: Build with py2app for Mac
+      if: matrix.os == 'macos-latest'
+      run: python build_osx.py py2app
+
+    - name: Package with dmgbuild for Mac
+      if: matrix.os == 'macos-latest'
+      run: dmgbuild -s dmg_settings.py "Camera Controller" "dist/CameraController.dmg"
+
+    - name: Create installer
+      if: matrix.os == 'windows-latest'
+      uses: joncloud/makensis-action@v3.7
+      with:
+        arguments: ""
+        script-file: install.nsi
+
+    - name: List 2
+      run:  |
+        ls dist
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: "${{ matrix.ASSET_NAME }}"
+        asset_name: "${{ matrix.ARTIFACT_NAME }}"
+        tag: ${{ github.ref }}
+        overwrite: true

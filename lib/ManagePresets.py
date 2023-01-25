@@ -1,8 +1,7 @@
 import os
 from lib.pyinstaller_helper import resource_path
-from tkinter import Button, PhotoImage, Label, Toplevel, Entry, Frame
+from tkinter import Button, PhotoImage, Label, Toplevel, Entry, Frame, END
 from onvif.exceptions import ONVIFError
-from math import floor
 
 
 class ManagePresets(Toplevel):
@@ -21,20 +20,30 @@ class ManagePresets(Toplevel):
 
         self.preset_frame = None
         self.preset_labels = []
-        self.preset_delete_buttons = []
-        self.preset_hide_buttons = []
-        self.state = []
-        self.preset_delete_image = PhotoImage(file=resource_path(os.path.join('assets', 'trash.png')))
-        self.preset_visible_image = PhotoImage(file=resource_path(os.path.join('assets', 'visible.png')))
+        self.selected_preset_idx = -1
+        self.presets = []
+        self.preset_edit_buttons = []
+
+        self.preset_save_image = PhotoImage(file=resource_path(os.path.join('assets', 'save.png')))
+        self.preset_edit_image = PhotoImage(file=resource_path(os.path.join('assets', 'edit.png')))
+
+        text = """Camera Controller can use 10 presets.
+To change a preset click the edit button
+then enter a new name. Clicking save will
+save the preset at the current camera location."""
+        self.intro = Label(self, text=text, background="white", anchor="w", justify="left")
+        self.intro.grid(row=0, column=0, padx=0.1, pady=0.1, sticky='W')
 
         self.add_frame = Frame(self, background='white')
-        self.add_frame.grid(row=1, column=0, padx=0.1, pady=0.1)
+        self.add_frame.grid(row=1, column=0, padx=0.1, pady=0.1, sticky='W')
 
         vcmd = (self.register(self.name_validate), '%P')
-        self.name = Entry(self.add_frame, background='white', validate="key", validatecommand=vcmd)
+        self.name = Entry(self.add_frame, background='white', validate="key", validatecommand=vcmd, width=35)
         self.name.grid(row=0, column=0, padx=5, pady=5)
-        self.add_button = Button(self.add_frame, text="Add", background='white', command=self.add, state='disabled')
-        self.add_button.grid(row=0, column=1, padx=5, pady=5)
+        self.save_button = Button(self.add_frame, text="Save", image=self.preset_save_image, height=20,
+                                  width=20,
+                                  background='white', border=0, command=self.save, state='disabled')
+        self.save_button.grid(row=0,column=1, padx=5, pady=5)
 
         if not self.camera.enabled:
             self.name.configure(state='disabled')
@@ -43,9 +52,9 @@ class ManagePresets(Toplevel):
 
     def name_validate(self, P):
         if P == '':
-            self.add_button.configure(state='disabled')
+            self.save_button.configure(state='disabled')
         else:
-            self.add_button.configure(state='normal')
+            self.save_button.configure(state='normal')
 
         return True
 
@@ -54,45 +63,46 @@ class ManagePresets(Toplevel):
             if self.camera.enabled is False:
                 raise Exception("Camera not started")
 
-            presets = self.camera.camera.preset_list()
+            self.presets = self.camera.ovnif.preset_list()
             if self.preset_frame:
                 self.preset_frame.destroy()
                 self.preset_labels = []
-                self.preset_delete_buttons = []
-                self.preset_hide_buttons = []
+                self.preset_edit_buttons = []
 
-            self.state = [True] * len(presets)
             self.preset_frame = Frame(self, background='white')
-            self.preset_frame.grid(row=1, column=0, padx=0.1, pady=0.1)
+            self.preset_frame.grid(row=2, column=0, padx=0.1, pady=0.1, sticky='W')
             start_row_offset = 2
-            presets_per_column = 1
-            for idx, preset in enumerate(presets):
-                row = floor(idx / presets_per_column)
-                column = 2*(idx % presets_per_column) + start_row_offset
-                preset_delete_button = Button(self.preset_frame, image=self.preset_delete_image, height=20, width=20,
-                                              background='white', border=0, command=lambda idx=idx: self.delete(idx))
-                preset_delete_button.grid(row=row, column=column, padx=0, pady=0)
+            max_presets = 10
+            for idx in range(max_presets):
+                row = idx + start_row_offset
+                name = self.presets[idx]['Name'] if idx <= len(self.presets) else f"Preset {idx + 1}"
 
-                preset_label = Label(self.preset_frame, text=preset['Name'], background="white", anchor="w", width=15)
-                preset_label.grid(row=row, column=column + 1, padx=0, pady=0, sticky="w")
+                preset_edit_button = Button(self.preset_frame, image=self.preset_edit_image, height=20,
+                                            width=20,
+                                            background='white', border=0,
+                                            command=lambda idx=idx: self.edit(idx))
+                preset_edit_button.grid(row=row, column=0, padx=0, pady=0)
+
+                preset_label = Label(self.preset_frame, text=name, background="white", anchor="w", width=15)
+                preset_label.grid(row=row, column=1, padx=0, pady=0, sticky="w")
 
                 self.preset_labels.append(preset_label)
-                self.preset_delete_buttons.append(preset_delete_button)
+                self.preset_edit_buttons.append(preset_edit_button)
 
         except Exception:
             self.set_message('Camera not started')
 
-    def add(self):
+    def edit(self, idx):
+        self.selected_preset_idx = idx
+        name = self.presets[idx]['Name'] if idx <= len(self.presets) else f"Preset {idx + 1}"
+        self.name.delete(0, END)
+        self.name.insert(0, name)
+
+    def save(self):
         try:
             name = self.name.get()
-            self.camera.preset_add(name)
-            self.reload()
-        except ONVIFError as err:
-            self.set_message(f"Error adding preset: {err}")
-
-    def delete(self, idx):
-        try:
-            self.camera.preset_remove(idx)
+            token = self.presets[self.selected_preset_idx]['token'] if self.selected_preset_idx <= len(self.presets) else f""
+            self.camera.preset_add(name, token)
             self.reload()
         except ONVIFError as err:
             self.set_message(f"Error adding preset: {err}")
