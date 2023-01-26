@@ -49,7 +49,7 @@ jobs:
         echo Cloning official pyinstaller repo
         git clone https://github.com/pyinstaller/pyinstaller
         cd pyinstaller
-        git checkout v5.2
+        git checkout v5.7
         cd bootloader
   
         echo installing dependency

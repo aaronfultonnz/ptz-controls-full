@@ -1,4 +1,2 @@
 onvif-zeep
-opencv-python
-pillow
 appdirs

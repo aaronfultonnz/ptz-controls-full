@@ -1,9 +1,6 @@
 import os
-import threading
 import time
 from math import floor
-from PIL import Image, ImageTk
-import cv2
 from lib.ONVIFControl import ONVIFControl
 from lib.pyinstaller_helper import resource_path
 from tkinter import Button, PhotoImage, Label, LabelFrame
@@ -18,7 +15,6 @@ class CameraControl:
         self.port = 80 if 'port' not in config else int(config['port'])
         self.username = '' if 'username' not in config else config['username']
         self.password = '' if 'password' not in config else config['password']
-        self.preview_url = '' if 'preview' not in config else config['preview']
         self.zoom_speed_slow = 40 if 'zoom_speed_slow' not in general else int(general['zoom_speed_slow'])
         self.zoom_speed_fast = 80 if 'zoom_speed_fast' in general else int(general['zoom_speed_fast'])
         self.move_speed_slow = 30 if 'move_speed_slow' in general else int(general['move_speed_slow'])
@@ -27,17 +23,11 @@ class CameraControl:
         self.ovnif = None
         self.enabled = False
         self.cap = None
-        self.preview_height = 200
-        self.preview_fps = 20
         self.preset_buttons = []
         self.last_frame_time = time.time()
         self.thread_running = False
-        self.preview_thread =  threading.Thread(target=self.preview_thread)
 
         self.frame = LabelFrame(tk_root, text=self.name, background='white', padx=5, pady=5)
-
-        self.preview = Label(self.frame, background='white')
-        self.preview.grid(row=0, column=0, rowspan=6)
 
         self.up_photo_fast = PhotoImage(file=resource_path(os.path.join('assets', 'up-fast.png')))
         self.up_button_fast = Button(self.frame, image=self.up_photo_fast, height=40, width=40, state="disabled",
@@ -219,49 +209,8 @@ class CameraControl:
         self.zoom_out_button_fast.configure(state="normal")
         self.enabled = True
 
-    def initialize_preview(self):
-        if self.cap:
-            self.cap.release()
-            time.sleep(0.2)
-
-        if self.preview_url:
-            try:
-                self.set_message('Starting preview')
-                self.cap = cv2.VideoCapture(self.preview_url)
-                if not self.cap.isOpened():
-                    raise Exception()
-                self.preview_thread.start()
-                self.set_message('')
-            except Exception:
-                self.set_message('Failed to start the preview')
-
-    def preview_thread(self):
-        """
-        Run as a thread
-        """
-        self.thread_running = True
-        while self.thread_running:
-            try:
-               # print(1000*(self.last_frame_time - time.time()))
-                self.last_frame_time = time.time()
-                ret, frame = self.cap.read()
-                if ret:
-                    cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    ratio = cv2image.shape[0] / cv2image.shape[1]
-                    width = int(self.preview_height / ratio)
-                    resized = cv2.resize(cv2image, (width, self.preview_height), interpolation=cv2.INTER_AREA)
-                    img = Image.fromarray(resized)
-                    imgtk = ImageTk.PhotoImage(image=img)
-                    self.preview.imgtk = imgtk
-                    self.preview.configure(image=imgtk)
-
-            except Exception: # If failing for some reason, just continue and try again
-                pass
-            finally:
-                time.sleep(0.04)  # 1/25 fps
-
     def set_message(self, message):
         self.message.configure(text=message)
         self.root.update()
     def close(self):
-        self.thread_running = False
+        pass

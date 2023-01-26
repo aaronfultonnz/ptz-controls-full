@@ -40,7 +40,7 @@ class Controller:
 
         self.reload()
         self.root.config(menu=self.menubar)
-        self.root.after(500, self.initialize)  # delay the preview starting for better UX
+        self.root.after(500, self.initialize)  # delay starting for better UX
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.mainloop()
@@ -70,8 +70,6 @@ class Controller:
     def initialize(self):
         for camera_control in self.cameras:
             has_started = camera_control.start_camera()
-            if has_started:
-                camera_control.initialize_preview()
 
     def populate_presets_menu(self):
         self.presetsmenu.delete(0, tkinter.END)
